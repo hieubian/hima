@@ -385,9 +385,16 @@
       right: 14px;
       width: 32px;
       height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      aspect-ratio: 1;
       border: none;
       background: #f2f2f2;
-      border-radius: 50%;
+      border-radius: 50% !important;
+      -webkit-border-radius: 50% !important;
+      -webkit-appearance: none;
+      appearance: none;
+      overflow: hidden;
       font-size: 1.2rem;
       line-height: 1;
       cursor: pointer;
@@ -396,6 +403,9 @@
       justify-content: center;
       color: #888;
       transition: background .15s;
+      box-sizing: border-box;
+      padding: 0;
+      flex-shrink: 0;
     }
     #cornetto-close:hover { background: #e0e0e0; color: #333; }
 

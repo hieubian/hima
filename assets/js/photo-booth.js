@@ -11,9 +11,9 @@
   var FILTER_PARTS = {
     normal: [],
     silky: [
-      { fn: 'brightness', v: 1.03 },
-      { fn: 'contrast', v: 0.96 },
-      { fn: 'saturate', v: 1.1 }
+      { fn: 'brightness', v: 1.08 },
+      { fn: 'contrast',   v: 0.86 },
+      { fn: 'saturate',   v: 1.14 }
     ],
     warm: [
       { fn: 'sepia', v: 0.09 },
@@ -529,6 +529,48 @@
     if ('imageSmoothingQuality' in octx) octx.imageSmoothingQuality = 'high';
     drawCover(octx, temp, 0, 0, cw, ch);
 
+    /**
+     * Silky skin smoothing: blur+blend technique
+     * Vẽ lại ảnh mờ trên nền sắc nét ở alpha thấp — giả lập
+     * frequency-separation làm mịn da mà vẫn giữ cạnh sắc.
+     */
+    if (filterId === 'silky' && filterStrengthPct > 0) {
+      var s = Math.min(1, filterStrengthPct / 100);
+      /* Blur radius: 2-6px tỹ lệ cường độ */
+      var bpx = (2 + s * 4).toFixed(1);
+
+      /* Pass 1: soft blur — làm mịn bề mặt da */
+      var skinC = document.createElement('canvas');
+      skinC.width  = cw;
+      skinC.height = ch;
+      var sctxS = skinC.getContext('2d');
+      if (sctxS) {
+        sctxS.filter = 'blur(' + bpx + 'px) brightness(1.04) saturate(1.06)';
+        sctxS.drawImage(out, 0, 0);
+        sctxS.filter = 'none';
+        /* Blend: 35-50% phụ thộc cường độ */
+        octx.globalAlpha = 0.35 + s * 0.15;
+        octx.drawImage(skinC, 0, 0);
+        octx.globalAlpha = 1;
+      }
+
+      /* Pass 2: glow highlight — nước da rạng rỡ */
+      var glowC = document.createElement('canvas');
+      glowC.width  = cw;
+      glowC.height = ch;
+      var gctxS = glowC.getContext('2d');
+      if (gctxS) {
+        gctxS.filter = 'blur(' + (parseFloat(bpx) * 2.2).toFixed(1) + 'px) brightness(1.22)';
+        gctxS.drawImage(out, 0, 0);
+        gctxS.filter = 'none';
+        octx.globalCompositeOperation = 'screen';
+        octx.globalAlpha = 0.06 + s * 0.05;
+        octx.drawImage(glowC, 0, 0);
+        octx.globalAlpha = 1;
+        octx.globalCompositeOperation = 'source-over';
+      }
+    }
+
     return out;
   }
 
@@ -693,7 +735,12 @@
     function setPreviewFilter() {
       if (!preview) return;
       var f = canvasFilterFromPreset(filterId, filterStrengthPct);
-      preview.style.filter = f === 'none' ? 'none' : f;
+      /* Silky: thêm blur nhẹ lên video preview để thấy hiệu ứng làm mịn */
+      if (filterId === 'silky' && filterStrengthPct > 0) {
+        var blurPx = ((filterStrengthPct / 100) * 1.2).toFixed(1);
+        f = (f && f !== 'none' ? f + ' ' : '') + 'blur(' + blurPx + 'px)';
+      }
+      preview.style.filter = f && f !== 'none' ? f : 'none';
     }
 
     function syncFilterStrengthUI() {

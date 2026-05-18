@@ -1491,7 +1491,7 @@ button.pb-swatch-wrap:focus-visible{
 }
 
 /* Filter previews on thumbs (decorative — khớp FILTER_PRESETS) */
-.pb-filter-card[data-filter="silky"] .pb-filter-card__shot{ filter: brightness(1.03) contrast(0.96) saturate(1.1); }
+.pb-filter-card[data-filter="silky"] .pb-filter-card__shot{ filter: brightness(1.08) contrast(0.86) saturate(1.14) blur(0.8px); }
 .pb-filter-card[data-filter="warm"] .pb-filter-card__shot{ filter: sepia(0.09) saturate(1.14) brightness(1.04); }
 .pb-filter-card[data-filter="blossom"] .pb-filter-card__shot{ filter: brightness(1.05) contrast(0.97) saturate(1.32); }
 .pb-filter-card[data-filter="daydream"] .pb-filter-card__shot{ filter: brightness(1.07) contrast(0.9) saturate(0.93); }
