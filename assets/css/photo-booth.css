@@ -63,19 +63,15 @@ body.photo-booth-page .page-photo-booth{
   outline: 2px solid var(--color-primary-dark);
   outline-offset: 3px;
 }
-.pb-brand__home:hover .pb-brand__logo{
-  box-shadow: 0 3px 18px rgba(15, 23, 42, 0.14);
-}
 .pb-brand__logo{
   width: 52px;
   height: 52px;
   object-fit: contain;
   flex-shrink: 0;
-  border-radius: var(--radius-lg);
-  /* PNG có alpha — không lót nền để Phát sáng lộ quanh logo */
+  /* PNG alpha — không bo góc, không nền, không bóng */
   background: transparent;
-  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.1);
-  mix-blend-mode: normal;
+  border-radius: 0;
+  box-shadow: none;
   display: block;
 }
 .pb-brand__title{
