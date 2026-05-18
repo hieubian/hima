@@ -1120,6 +1120,17 @@ body.photo-booth-page .page-photo-booth{
     gap: 10px;
     margin-bottom: var(--sp-4);
   }
+  /* Đảm bảo tròn tuyệt đối trên mobile mọi DPI */
+  .pb-swatch,
+  .pb-swatch-wrap{
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 50% !important;
+    -webkit-border-radius: 50% !important;
+    overflow: hidden !important;
+  }
   .pb-layout-grid{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     max-width: 100%;
@@ -1299,19 +1310,26 @@ body.photo-booth-page .page-photo-booth{
 .pb-swatch{
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50% !important;
+  -webkit-border-radius: 50% !important;
   border: 3px solid transparent;
   cursor: pointer;
   padding: 0;
   box-sizing: border-box;
   flex-shrink: 0;
   transition: box-shadow var(--t-fast), transform var(--t-fast);
+  /* Mọi thiết bị / DPI */
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
 }
 .pb-swatch:hover{ transform: scale(1.06); }
 .pb-swatch[aria-pressed="true"],
 .pb-swatch--active{
   border-color: var(--pb-pink);
-  box-shadow: 0 0 0 2px rgba(244, 180, 26, 0.35);
+  box-shadow: 0 0 0 3px rgba(244, 180, 26, 0.38);
 }
 
 /* Ô cầu vồng: <label> + input color trong modal — gesture trực tiếp, iOS/Android mở picker ổn định */
@@ -1319,10 +1337,14 @@ body.photo-booth-page .page-photo-booth{
   position: relative;
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: 50% !important;
+  -webkit-border-radius: 50% !important;
   border: 3px solid transparent;
   box-sizing: border-box;
+  overflow: hidden;
   transition: box-shadow var(--t-fast), transform var(--t-fast);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -1351,7 +1373,7 @@ button.pb-swatch-wrap{
 }
 .pb-swatch-wrap.pb-swatch--active{
   border-color: var(--pb-pink);
-  box-shadow: 0 0 0 2px rgba(244, 180, 26, 0.35);
+  box-shadow: 0 0 0 3px rgba(244, 180, 26, 0.38);
 }
 label.pb-swatch-wrap:focus-within,
 button.pb-swatch-wrap:focus-visible{
