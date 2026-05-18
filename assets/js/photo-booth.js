@@ -659,17 +659,20 @@
       canvas.toBlob(function (blob) {
         if (!blob) return;
 
-        if (navigator.share && navigator.canShare && typeof File !== 'undefined') {
+        // Phát hiện hệ điều hành thông minh
+        var ua = navigator.userAgent || navigator.vendor || window.opera;
+        var isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        // iOS: Web Share API là chuẩn mực để có nút "Save Image" lưu thẳng vào Album ảnh.
+        // Android/Desktop: a.download là chuẩn mực để gọi Download Manager gốc của máy, cực kỳ mượt và báo noti tải xong.
+        if (isIOS && navigator.share && navigator.canShare && typeof File !== 'undefined') {
           try {
             var file = new File([blob], filename, { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
               navigator.share({
                 files: [file],
                 title: 'HIMACAKE Photobooth'
-              }).then(function () {
-                // Share successful (user picked an action like "Save Image")
               }).catch(function (error) {
-                // If user didn't cancel manually, try fallback
                 if (error && error.name !== 'AbortError') {
                   fallbackDownload(blob);
                 }
@@ -677,10 +680,11 @@
               return;
             }
           } catch (err) {
-            // File constructor or canShare failed
+            // Ignore Web Share errors
           }
         }
         
+        // Mặc định cho Android và Desktop: Tải xuống trực tiếp
         fallbackDownload(blob);
       }, 'image/png');
     } catch (e) {
