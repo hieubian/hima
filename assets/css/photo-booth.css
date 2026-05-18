@@ -1427,19 +1427,20 @@ button.pb-swatch-wrap:focus-visible{
 }
 .pb-swatch--custom{
   position: relative;
-  background: linear-gradient(125deg, #ffe082 0%, #ffcc80 18%, #fff3b0 40%, #9dedc4 62%, #94cfff 82%, #d7ccc8 100%);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 2px 8px rgba(0, 0, 0, 0.06);
+  /* Conic gradient đầy tròn — giống nút pick màu khung */
+  background: conic-gradient(from 0deg,
+    #f4b41a 0%,
+    #ff6b6b 15%,
+    #c084fc 32%,
+    #60a5fa 50%,
+    #34d399 67%,
+    #fbbf24 84%,
+    #f4b41a 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
 }
+/* Bỏ badge nhỏ — cả mặt tròn đã là rainbow rồi */
 .pb-swatch--custom::after{
-  content: "";
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, #f4b41a, #ffb84d, #5fe3b3, #6eb3ff, #a1887f, #f4b41a);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
-  pointer-events: none;
+  display: none;
 }
 
 .pb-light-panel input[type="range"]{
