@@ -288,6 +288,154 @@
     </div>
   </section>
 
+  <!-- Cornetto Easter Egg Button -->
+  <button id="cornetto-btn" aria-label="Cornetto" title="Cornetto">
+    <img src="assets/img/cornettook.png" alt="Cornetto" width="38" height="38">
+  </button>
+
+  <!-- Cornetto Popup -->
+  <div id="cornetto-popup" role="dialog" aria-modal="true" aria-label="Cornetto" hidden>
+    <div id="cornetto-backdrop"></div>
+    <div id="cornetto-card">
+      <button id="cornetto-close" aria-label="Đóng">×</button>
+      <img src="assets/img/cornettook.png" alt="Cornetto" id="cornetto-img">
+      <p id="cornetto-text">You là Cornetto 🍦</p>
+    </div>
+  </div>
+
+  <style>
+    #cornetto-btn {
+      position: fixed;
+      bottom: max(24px, env(safe-area-inset-bottom, 24px));
+      right: max(20px, env(safe-area-inset-right, 20px));
+      z-index: 900;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,.18), 0 1px 6px rgba(0,0,0,.10);
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #cornetto-btn:hover {
+      transform: scale(1.12) rotate(-8deg);
+      box-shadow: 0 8px 28px rgba(0,0,0,.22);
+    }
+    #cornetto-btn:active {
+      transform: scale(0.95);
+    }
+    #cornetto-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Popup */
+    #cornetto-popup {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #cornetto-popup[hidden] { display: none !important; }
+
+    #cornetto-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,6,20,.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    #cornetto-card {
+      position: relative;
+      background: #fff;
+      border-radius: 28px;
+      padding: 32px 28px 28px;
+      max-width: 300px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+      animation: cornetto-in .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes cornetto-in {
+      from { transform: scale(.7) translateY(30px); opacity: 0; }
+      to   { transform: scale(1) translateY(0);     opacity: 1; }
+    }
+
+    #cornetto-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f2f2f2;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      transition: background .15s;
+    }
+    #cornetto-close:hover { background: #e0e0e0; color: #333; }
+
+    #cornetto-img {
+      width: 160px;
+      height: 160px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 8px 20px rgba(0,90,200,.15));
+      animation: cornetto-bounce 2.4s ease-in-out infinite;
+    }
+    @keyframes cornetto-bounce {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      50%       { transform: translateY(-10px) rotate(4deg); }
+    }
+
+    #cornetto-text {
+      margin: 16px 0 0;
+      font-family: 'Quicksand', 'Be Vietnam Pro', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #1565C0;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+  </style>
+
+  <script>
+    (function () {
+      var btn     = document.getElementById('cornetto-btn');
+      var popup   = document.getElementById('cornetto-popup');
+      var backdrop = document.getElementById('cornetto-backdrop');
+      var closeBtn = document.getElementById('cornetto-close');
+      function openPopup()  { popup.hidden = false; document.body.style.overflow = 'hidden'; }
+      function closePopup() { popup.hidden = true;  document.body.style.overflow = ''; }
+      if (btn)      btn.addEventListener('click', openPopup);
+      if (closeBtn) closeBtn.addEventListener('click', closePopup);
+      if (backdrop) backdrop.addEventListener('click', closePopup);
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
+    })();
+  </script>
+
   <script src="assets/js/photo-booth.js" defer></script>
 
 </body>
