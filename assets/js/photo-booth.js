@@ -680,6 +680,8 @@
 
     var capturedFrames = [];
     var frameMatColor = '#ffffff';
+    /** Màu tùy chỉnh màu khung — cập nhật khi dùng color picker */
+    var frameMatCustomColor = '#F4B41A';
     /** Nền sticker = họa tiết IMG_4361; mặc định tắt — chỉ dùng màu khung */
     var bgPatternOn = false;
 
@@ -1194,19 +1196,21 @@
     function renderFrameMatSwatches() {
       if (!frameSwatchesEl) return;
       frameSwatchesEl.innerHTML = '';
+
+      /* Các màu cố định */
       FRAME_MAT_COLORS.forEach(function (hex) {
+        var active = frameMatColor === hex;
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'pb-frame-mat-swatch';
         b.style.background = hex;
+        b.style.backgroundColor = hex;
         b.title = hex;
         b.setAttribute('aria-label', 'Màu khung ' + hex);
-        b.setAttribute('aria-pressed', frameMatColor === hex ? 'true' : 'false');
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
         b.addEventListener('click', function () {
           frameMatColor = hex;
-          frameSwatchesEl.querySelectorAll('.pb-frame-mat-swatch').forEach(function (x) {
-            x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
-          });
+          syncFrameSwatchActive();
           if (bgPatternOn) {
             bgPatternOn = false;
             if (bgPatternToggle) bgPatternToggle.setAttribute('aria-pressed', 'false');
@@ -1215,6 +1219,68 @@
         });
         frameSwatchesEl.appendChild(b);
       });
+
+      /* Nút màu tùy chỉnh (cầu vồng) — mở native color picker trên mọi thiết bị */
+      var isCustom = !FRAME_MAT_COLORS.includes(frameMatColor);
+      var wrap = document.createElement('label');
+      wrap.className = 'pb-frame-color-wrap' + (isCustom ? ' pb-frame-color-wrap--active' : '');
+      wrap.title = 'Chọn màu khung tùy ý';
+      wrap.setAttribute('aria-label', 'Chọn màu khung tùy chỉnh');
+      wrap.setAttribute('role', 'button');
+
+      var face = document.createElement('span');
+      face.className = 'pb-frame-color-face';
+      face.setAttribute('aria-hidden', 'true');
+
+      var inp = document.createElement('input');
+      inp.type = 'color';
+      inp.className = 'pb-frame-color-input';
+      inp.setAttribute('aria-label', 'Chọn màu khung tùy chỉnh');
+      try { inp.value = frameMatCustomColor; } catch(e) {}
+
+      inp.addEventListener('input', function () {
+        frameMatCustomColor = inp.value;
+        frameMatColor = inp.value;
+        syncFrameSwatchActive();
+        if (bgPatternOn) {
+          bgPatternOn = false;
+          if (bgPatternToggle) bgPatternToggle.setAttribute('aria-pressed', 'false');
+        }
+        redrawEditorCanvas();
+      });
+      inp.addEventListener('change', function () {
+        frameMatCustomColor = inp.value;
+        frameMatColor = inp.value;
+        syncFrameSwatchActive();
+        redrawEditorCanvas();
+      });
+
+      wrap.appendChild(face);
+      wrap.appendChild(inp);
+      frameSwatchesEl.appendChild(wrap);
+    }
+
+    function syncFrameSwatchActive() {
+      if (!frameSwatchesEl) return;
+      var isCustom = !FRAME_MAT_COLORS.includes(frameMatColor);
+      frameSwatchesEl.querySelectorAll('.pb-frame-mat-swatch').forEach(function (x) {
+        var active = x.style.backgroundColor === '' ?
+          x.title === frameMatColor :
+          hexNorm(x.title) === hexNorm(frameMatColor);
+        x.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      var wrap = frameSwatchesEl.querySelector('.pb-frame-color-wrap');
+      if (wrap) {
+        if (isCustom) {
+          wrap.classList.add('pb-frame-color-wrap--active');
+        } else {
+          wrap.classList.remove('pb-frame-color-wrap--active');
+        }
+      }
+    }
+
+    function hexNorm(h) {
+      return String(h || '').toLowerCase().replace(/\s/g, '');
     }
 
     function redrawEditorCanvas() {

@@ -258,7 +258,7 @@ body.photo-booth-page .page-photo-booth{
 .pb-editor-layout{
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   align-items: start;
 }
 .pb-editor-preview{
@@ -298,25 +298,92 @@ body.photo-booth-page .page-photo-booth{
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
+  align-items: center;
 }
+/* DPI-aware: dùng % + overflow hidden thay vì border-radius px cố định để luôn tròn mọi thiết bị */
 .pb-frame-mat-swatch{
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  /* Kích thước đủ lớn cho touch target (44px theo WCAG 2.5.8) */
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50% !important;
   border: 3px solid transparent;
   cursor: pointer;
   padding: 0;
   box-sizing: border-box;
   flex-shrink: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.10);
+  /* Loại bỏ mọi trình duyệt reset làm méo hình */
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
+  /* Đảm bảo tròn trên iOS Safari */
+  -webkit-border-radius: 50%;
 }
 .pb-frame-mat-swatch:hover{
   transform: scale(1.08);
 }
 .pb-frame-mat-swatch[aria-pressed="true"]{
   border-color: var(--color-primary-dark);
-  box-shadow: 0 0 0 2px rgba(244, 180, 26, 0.35);
+  box-shadow: 0 0 0 3px rgba(244, 180, 26, 0.40);
+}
+/* Wrap cho color picker tùy chỉnh màu khung */
+.pb-frame-color-wrap{
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  -webkit-border-radius: 50%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.pb-frame-color-wrap:hover{
+  transform: scale(1.08);
+}
+.pb-frame-color-wrap.pb-frame-color-wrap--active{
+  border-color: var(--color-primary-dark);
+  box-shadow: 0 0 0 3px rgba(244, 180, 26, 0.40);
+}
+/* Mặt cầu vồng — gradient báo "chọn màu tùy ý" */
+.pb-frame-color-face{
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    #f4b41a 0%,
+    #ff6b6b 15%,
+    #c084fc 32%,
+    #60a5fa 50%,
+    #34d399 67%,
+    #fbbf24 84%,
+    #f4b41a 100%);
+  pointer-events: none;
+}
+.pb-frame-color-input{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.001;
+  cursor: pointer;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px;
+  box-sizing: border-box;
 }
 .pb-sticker-btn{
   display: inline-flex;
@@ -347,8 +414,16 @@ body.photo-booth-page .page-photo-booth{
 }
 .pb-editor-actions{
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: var(--sp-2);
+}
+.pb-editor-actions .pb-download{
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+.pb-editor-actions .pb-retake{
+  flex: 0 0 auto;
 }
 .pb-download{
   display: inline-flex;
@@ -411,6 +486,37 @@ body.photo-booth-page .page-photo-booth{
   .pb-filmstrip{
     padding-top: 0;
     padding-inline: var(--sp-1);
+  }
+  /* Editor phase mobile — canvas nhỏ gọn hơn, controls đủ dùng */
+  .pb-editor-shell{
+    padding: var(--sp-3);
+  }
+  .pb-editor-preview{
+    padding: var(--sp-2);
+    min-height: unset;
+  }
+  .pb-editor-side__title{
+    font-size: var(--fs-18);
+    margin-bottom: var(--sp-2);
+  }
+  .pb-editor-hint{
+    display: none;
+  }
+  .pb-editor-block{
+    margin-bottom: var(--sp-3);
+  }
+  /* Nút tròn màu khung — đảm bảo đủ touch area */
+  .pb-frame-mat-swatch,
+  .pb-frame-color-wrap{
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 50% !important;
+    -webkit-border-radius: 50% !important;
+  }
+  .pb-editor-actions{
+    flex-direction: row;
   }
 }
 
