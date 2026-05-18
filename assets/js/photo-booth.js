@@ -639,16 +639,253 @@
     return out;
   }
 
-  function triggerDownload(canvas) {
+  /* ─────────────────────────────────────────────────────────────────────────
+   * PROFESSIONAL SAVE SYSTEM
+   * Priority:
+   *   1. Web Share API + File  → iOS Safari ≥ 14, Android Chrome ≥ 75
+   *      → ảnh xuất hiện trong share sheet → lưu vào Album ảnh trực tiếp
+   *   2. Native <a download>   → Desktop Chrome / Firefox / Edge
+   *   3. window.open() tab mới → Safari macOS, trình duyệt cũ (hướng dẫn nhấn giữ)
+   * ───────────────────────────────────────────────────────────────────────── */
+
+  /** Phát hiện iOS (iPhone / iPad) */
+  function isIOS() {
+    return /iP(hone|ad|od)/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  /** Phát hiện Android */
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  /** Có hỗ trợ Web Share API v2 (chia sẻ file) không? */
+  function canShareFiles() {
+    return !!(navigator.share && navigator.canShare && typeof File !== 'undefined');
+  }
+
+  /** Có hỗ trợ <a download> không? (không hoạt động trên iOS Safari) */
+  function supportsAnchorDownload() {
+    return !isIOS();
+  }
+
+  /** ── Toast UI ── */
+  function showSaveToast(type, message) {
+    var existing = document.getElementById('pb-save-toast');
+    if (existing) existing.remove();
+
+    var toast = document.createElement('div');
+    toast.id = 'pb-save-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    var icon = type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'info' ? 'ℹ' : '⏳';
+    var bgMap = {
+      success: 'linear-gradient(135deg,#1a7a4a,#25a060)',
+      error:   'linear-gradient(135deg,#c0392b,#e74c3c)',
+      info:    'linear-gradient(135deg,#1a5fa8,#2980d9)',
+      loading: 'linear-gradient(135deg,#6c3483,#8e44ad)'
+    };
+
+    toast.style.cssText = [
+      'position:fixed',
+      'bottom:calc(env(safe-area-inset-bottom,0px) + 24px)',
+      'left:50%',
+      'transform:translateX(-50%) translateY(20px)',
+      'background:' + (bgMap[type] || bgMap.info),
+      'color:#fff',
+      'padding:13px 22px',
+      'border-radius:50px',
+      'font:600 14px/1.4 "Quicksand","Be Vietnam Pro",system-ui,sans-serif',
+      'display:flex',
+      'align-items:center',
+      'gap:9px',
+      'box-shadow:0 8px 32px rgba(0,0,0,0.28)',
+      'z-index:99999',
+      'max-width:min(90vw,380px)',
+      'text-align:center',
+      'opacity:0',
+      'transition:opacity .25s,transform .3s cubic-bezier(.34,1.56,.64,1)',
+      'pointer-events:none',
+      'white-space:pre-line'
+    ].join(';');
+
+    var iconEl = document.createElement('span');
+    iconEl.style.cssText = 'font-size:18px;flex-shrink:0;line-height:1';
+    iconEl.textContent = icon;
+
+    var txt = document.createElement('span');
+    txt.textContent = message;
+
+    toast.appendChild(iconEl);
+    toast.appendChild(txt);
+    document.body.appendChild(toast);
+
+    /* Animate in */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+      });
+    });
+
+    /* Auto-dismiss — không dismiss toast loading */
+    if (type !== 'loading') {
+      var delay = type === 'error' ? 5000 : type === 'info' ? 6000 : 3000;
+      setTimeout(function () {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(12px)';
+        setTimeout(function () { toast.remove(); }, 350);
+      }, delay);
+    }
+
+    return toast;
+  }
+
+  function dismissToast(toastEl) {
+    if (!toastEl) return;
+    toastEl.style.opacity = '0';
+    toastEl.style.transform = 'translateX(-50%) translateY(12px)';
+    setTimeout(function () { if (toastEl.parentNode) toastEl.remove(); }, 350);
+  }
+
+  /**
+   * Tạo File object từ canvas blob — cần cho Web Share API.
+   */
+  function canvasToFile(canvas, filename, cb) {
     canvas.toBlob(function (blob) {
-      if (!blob) return;
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'himacake-photobooth-' + Date.now() + '.png';
-      a.click();
-      URL.revokeObjectURL(url);
+      if (!blob) { cb(null); return; }
+      try {
+        var file = new File([blob], filename, { type: 'image/png' });
+        cb(file, blob);
+      } catch (e) {
+        cb(null, blob);
+      }
     }, 'image/png');
+  }
+
+  /**
+   * Thử lưu bằng Web Share API (iOS / Android).
+   * Trả về Promise<boolean> — true nếu thành công.
+   */
+  function trySaveViaShareAPI(file, filename) {
+    if (!canShareFiles()) return Promise.resolve(false);
+    var shareData = { files: [file], title: 'HIMACAKE Photo Booth' };
+    if (!navigator.canShare(shareData)) return Promise.resolve(false);
+    return navigator.share(shareData).then(function () {
+      return true;
+    }).catch(function (err) {
+      /* AbortError = người dùng đóng sheet → không phải lỗi thật */
+      if (err && err.name === 'AbortError') return 'aborted';
+      return false;
+    });
+  }
+
+  /**
+   * Lưu bằng <a download> — desktop Chrome / Firefox / Edge.
+   */
+  function saveViaAnchor(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  /**
+   * Fallback: mở ảnh trong tab mới, hướng dẫn người dùng nhấn giữ để lưu.
+   */
+  function saveViaNewTab(blob) {
+    var url = URL.createObjectURL(blob);
+    var win = window.open(url, '_blank');
+    if (win) {
+      /* Hiển thị hướng dẫn — tab mới có ảnh, người dùng nhấn giữ / chuột phải để lưu */
+      showSaveToast('info',
+        isIOS()
+          ? 'Nhấn giữ ảnh → Thêm vào Ảnh để lưu vào Album'
+          : 'Ảnh đã mở trong tab mới\nNhấn chuột phải → Lưu ảnh dưới dạng…'
+      );
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } else {
+      /* Popup bị chặn */
+      showSaveToast('error', 'Không mở được tab mới.\nVui lòng cho phép popup và thử lại.');
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * ── Điểm vào chính ──
+   * Gọi với canvas và tùy chọn button element để disable trong lúc xử lý.
+   */
+  function triggerSave(canvas, btnEl) {
+    if (!canvas || !canvas.width || !canvas.height) {
+      showSaveToast('error', 'Chưa có ảnh để lưu. Thử chụp lại nhé!');
+      return;
+    }
+
+    var filename = 'himacake-photobooth-' + Date.now() + '.png';
+    var loadingToast = showSaveToast('loading', 'Đang chuẩn bị ảnh…');
+
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.setAttribute('aria-busy', 'true');
+    }
+
+    function finish() {
+      dismissToast(loadingToast);
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.removeAttribute('aria-busy');
+      }
+    }
+
+    canvasToFile(canvas, filename, function (file, blob) {
+      if (!blob) {
+        finish();
+        showSaveToast('error', 'Không tạo được ảnh. Thử lại nhé!');
+        return;
+      }
+
+      /* ── Đường 1: Web Share API (iOS / Android → lưu vào Album) ── */
+      if (file && canShareFiles()) {
+        trySaveViaShareAPI(file, filename).then(function (result) {
+          finish();
+          if (result === true) {
+            showSaveToast('success',
+              isIOS() ? '✦ Đã lưu vào Album ảnh!' : '✦ Đã chia sẻ thành công!'
+            );
+          } else if (result === 'aborted') {
+            /* Người dùng tự đóng share sheet — không cần thông báo */
+          } else {
+            /* Web Share thất bại → fallback */
+            fallbackSave(blob, filename);
+          }
+        });
+        return;
+      }
+
+      finish();
+      fallbackSave(blob, filename);
+    });
+  }
+
+  function fallbackSave(blob, filename) {
+    /* ── Đường 2: <a download> — Desktop ── */
+    if (supportsAnchorDownload()) {
+      saveViaAnchor(blob, filename);
+      showSaveToast('success', '✦ Ảnh đã tải về máy!');
+      return;
+    }
+    /* ── Đường 3: Tab mới — Safari macOS / trình duyệt cũ ── */
+    saveViaNewTab(blob);
+  }
+
+  /** Alias cũ — dùng trong các nhánh không có editorCanvas (compositeLayout legacy) */
+  function triggerDownload(canvas) {
+    triggerSave(canvas, null);
   }
 
   /**
