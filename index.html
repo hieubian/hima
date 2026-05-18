@@ -317,20 +317,24 @@
       border: none;
       background: #fff;
       box-shadow: 0 4px 20px rgba(0,0,0,.18), 0 1px 6px rgba(0,0,0,.10);
-      cursor: pointer;
+      cursor: grab;
       padding: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+      transition: box-shadow .2s ease;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
-    #cornetto-btn:hover {
-      transform: scale(1.12) rotate(-8deg);
+    #cornetto-btn.is-dragging {
+      cursor: grabbing;
+      box-shadow: 0 12px 36px rgba(0,0,0,.28);
+      transition: box-shadow .1s ease;
+    }
+    #cornetto-btn:not(.is-dragging):hover {
       box-shadow: 0 8px 28px rgba(0,0,0,.22);
-    }
-    #cornetto-btn:active {
-      transform: scale(0.95);
     }
     #cornetto-btn img {
       width: 100%;
@@ -447,16 +451,140 @@
 
   <script>
     (function () {
-      var btn     = document.getElementById('cornetto-btn');
-      var popup   = document.getElementById('cornetto-popup');
+      var btn      = document.getElementById('cornetto-btn');
+      var popup    = document.getElementById('cornetto-popup');
       var backdrop = document.getElementById('cornetto-backdrop');
       var closeBtn = document.getElementById('cornetto-close');
+
+      /* ---- Popup ---- */
       function openPopup()  { popup.hidden = false; document.body.style.overflow = 'hidden'; }
       function closePopup() { popup.hidden = true;  document.body.style.overflow = ''; }
-      if (btn)      btn.addEventListener('click', openPopup);
       if (closeBtn) closeBtn.addEventListener('click', closePopup);
       if (backdrop) backdrop.addEventListener('click', closePopup);
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
+
+      /* ---- Draggable button ---- */
+      if (!btn) return;
+      var SIZE   = 56;  /* px — khớp CSS width/height */
+      var MARGIN = 12;  /* khoảng cách tối thiểu cách mép */
+      var dragging  = false;
+      var moved     = false;
+      var startX, startY, origLeft, origTop;
+      var DRAG_THRESHOLD = 6; /* px — di chuyển ít hơn = coi là tap */
+
+      /* Đọc vị trí đã lưu */
+      function loadPos() {
+        try {
+          var s = localStorage.getItem('pb_cornetto_pos');
+          if (s) return JSON.parse(s);
+        } catch(e) {}
+        return null;
+      }
+      function savePos(l, t) {
+        try { localStorage.setItem('pb_cornetto_pos', JSON.stringify({l:l, t:t})); } catch(e) {}
+      }
+
+      /* Áp vị trí tuyệt đối (left/top) lên nút */
+      function applyPos(l, t) {
+        btn.style.left   = l + 'px';
+        btn.style.top    = t + 'px';
+        btn.style.right  = 'auto';
+        btn.style.bottom = 'auto';
+      }
+
+      /* Giới hạn vào trong viewport */
+      function clamp(l, t) {
+        var vw = window.innerWidth  || document.documentElement.clientWidth;
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        return {
+          l: Math.max(MARGIN, Math.min(vw  - SIZE - MARGIN, l)),
+          t: Math.max(MARGIN, Math.min(vh  - SIZE - MARGIN, t))
+        };
+      }
+
+      /* Khởi tạo vị trí */
+      var saved = loadPos();
+      if (saved) {
+        var c = clamp(saved.l, saved.t);
+        applyPos(c.l, c.t);
+      }
+
+      /* Lấy tọa độ hiện tại của nút */
+      function btnLeft() { return parseFloat(btn.style.left) || (window.innerWidth - SIZE - 20); }
+      function btnTop()  { return parseFloat(btn.style.top)  || (window.innerHeight - SIZE - 24); }
+
+      /* ---- Touch ---- */
+      btn.addEventListener('touchstart', function(e) {
+        var t0 = e.touches[0];
+        startX   = t0.clientX;
+        startY   = t0.clientY;
+        origLeft = btnLeft();
+        origTop  = btnTop();
+        dragging = true;
+        moved    = false;
+        btn.classList.add('is-dragging');
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        var t0 = e.touches[0];
+        var dx = t0.clientX - startX;
+        var dy = t0.clientY - startY;
+        if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
+        if (moved) {
+          e.preventDefault();
+          var c = clamp(origLeft + dx, origTop + dy);
+          applyPos(c.l, c.t);
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchend', function() {
+        if (!dragging) return;
+        dragging = false;
+        btn.classList.remove('is-dragging');
+        if (moved) {
+          savePos(btnLeft(), btnTop());
+        } else {
+          openPopup();
+        }
+        moved = false;
+      });
+
+      /* ---- Mouse ---- */
+      btn.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        startX   = e.clientX;
+        startY   = e.clientY;
+        origLeft = btnLeft();
+        origTop  = btnTop();
+        dragging = true;
+        moved    = false;
+        btn.classList.add('is-dragging');
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) moved = true;
+        if (moved) {
+          var c = clamp(origLeft + dx, origTop + dy);
+          applyPos(c.l, c.t);
+        }
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        btn.classList.remove('is-dragging');
+        if (moved) {
+          savePos(btnLeft(), btnTop());
+        } else {
+          openPopup();
+        }
+        moved = false;
+      });
     })();
   </script>
 
